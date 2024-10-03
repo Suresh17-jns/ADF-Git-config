@@ -1,0 +1,32 @@
+{
+	"name": "SINK_BACKUP_DAILY_EXCEL_FILE_DS",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "AzureDataLakeStoragels",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"ExcelFileNameDs": {
+				"type": "string",
+				"defaultValue": "_売上予算【日別】_当初.xlsx"
+			}
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": {
+					"value": "@concat(\n    substring(dataset().ExcelFileNameDs, 0, lastIndexOf(dataset().ExcelFileNameDs, '.')),'_',\n    formatDateTime(utcNow(), 'yyyyMMddHHmmss'),'.xlsx'\n)\n",
+					"type": "Expression"
+				},
+				"fileSystem": "backup-yosan-from-honbu-user"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": []
+	}
+}

@@ -1,0 +1,50 @@
+{
+	"name": "Mail_Success_Pipeline",
+	"properties": {
+		"activities": [
+			{
+				"name": "Success_Mail",
+				"type": "WebActivity",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"method": "POST",
+					"headers": {
+						"Content-Type": "application/json"
+					},
+					"url": "https://prod-04.japaneast.logic.azure.com:443/workflows/57fe5a420dde4be48dace3226801cb5c/triggers/manual/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=giSRVxAfFRBpAZoMa-YkkNYW9AtFC4rukS-VmKqI5Oc",
+					"body": {
+						"value": "{\n \n\n\"Pipeline_Name\" :\"@{pipeline().parameters.Pipeline}\",\n\"Subject\" : \"An Notification occur in the @{pipeline().parameters.Pipeline}-pipeline\",\n\"Output_Status\" : \"Successfully completed the @{pipeline().parameters.Pipeline}\",\n\n\"Data_Factory_Name\" : \"@{pipeline().DataFactory}\",\n\"RunId\" : \"@{pipeline().RunId}\",\n\"CC\" : \"@{pipeline().parameters.CC}\",\n\"Email To\" : \"@{pipeline().parameters.EmailTo}\",\n\"From\" : \"@{pipeline().parameters.From}\"\n\n}",
+						"type": "Expression"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"Pipeline": {
+				"type": "string"
+			},
+			"EmailTo": {
+				"type": "string"
+			},
+			"CC": {
+				"type": "string"
+			},
+			"From": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "Mail_Pipelines"
+		},
+		"annotations": [],
+		"lastPublishTime": "2024-09-30T10:43:27Z"
+	}
+}

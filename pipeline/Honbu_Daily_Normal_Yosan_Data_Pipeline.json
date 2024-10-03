@@ -1,0 +1,634 @@
+{
+	"name": "Honbu_Daily_Normal_Yosan_Data_Pipeline",
+	"properties": {
+		"activities": [
+			{
+				"name": "Truncate Honbu Yosan Data Temp Table",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "Copying File to Backup",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "SqlServerls",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": "TRUNCATE TABLE T_DAY_TEN_HONBU_YOSAN_TEMP"
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00"
+				}
+			},
+			{
+				"name": "HONBU YOSAN DATA INGESTION INTO MAIN TABLE",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "Honbu Daily Yosan Data Ingestion to Temp Table",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "SqlServerls",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": "delete from  T_DAY_TEN_HONBU_YOSAN_TEMP where date is null \n or  year is null or month is null or store_code is null or department_code  is null;\n\n\tMERGE T_DAY_TEN_Honbu_YOSAN AS Main\nUSING T_DAY_TEN_HONBU_YOSAN_TEMP AS temp\n    ON Main.year = temp.year and Main.month = temp.month and Main.date = temp.date and Main.store_code = temp.store_code and Main.department_code = temp.department_code   \nWHEN MATCHED AND (Main.honbu_yosan <> temp.honbu_yosan )\nTHEN UPDATE\n    SET Main.honbu_yosan =temp.honbu_yosan\nWHEN NOT MATCHED BY TARGET\nTHEN INSERT (year,month,date,store_code,department_code,honbu_yosan)\n    VALUES (temp.year,temp.month,temp.date,temp.store_code,temp.department_code,temp.honbu_yosan);"
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00"
+				}
+			},
+			{
+				"name": "Stored procedure error log",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Error Mail",
+						"dependencyConditions": [
+							"Completed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[usp_adfpipelineExecutions]",
+					"storedProcedureParameters": {
+						"ADF_pipeline": {
+							"value": {
+								"value": "@pipeline().DataFactory",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Pipeline_name": {
+							"value": {
+								"value": "@pipeline().Pipeline",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Run_id": {
+							"value": {
+								"value": "@pipeline().RunId",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Status": {
+							"value": "Failed",
+							"type": "String"
+						},
+						"Trigger_name": {
+							"value": {
+								"value": "@pipeline().TriggerType",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Trigger_time": {
+							"value": {
+								"value": "@pipeline().TriggerTime",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SqlServerls",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Stored procedure success log",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Success Mail",
+						"dependencyConditions": [
+							"Completed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[usp_adfpipelineExecutions]",
+					"storedProcedureParameters": {
+						"ADF_pipeline": {
+							"value": {
+								"value": "@pipeline().DataFactory",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Pipeline_name": {
+							"value": {
+								"value": "@pipeline().Pipeline",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Run_id": {
+							"value": {
+								"value": "@pipeline().RunId",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Status": {
+							"value": "Successfully executed",
+							"type": "String"
+						},
+						"Trigger_name": {
+							"value": {
+								"value": "@pipeline().TriggerType",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Trigger_time": {
+							"value": {
+								"value": "@pipeline().TriggerTime",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "SqlServerls",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Honbu Yosan Table to Tenpo Yosan Table",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "HONBU YOSAN DATA INGESTION INTO MAIN TABLE",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "SqlServerls",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": "\t\tMERGE T_DAY_TEN_TENPO_YOSAN AS Main\nUSING T_DAY_TEN_HONBU_YOSAN_TEMP AS temp\n    ON Main.year = temp.year and Main.month = temp.month and Main.date = temp.date and Main.store_code = temp.store_code and Main.department_code = temp.department_code   \nWHEN MATCHED AND (Main.tenpo_yosan <> temp.honbu_yosan )\nTHEN UPDATE\n    SET Main.tenpo_yosan =temp.honbu_yosan,Main.Import_dt = temp.Import_dt\nWHEN NOT MATCHED BY TARGET\nTHEN INSERT (year,month,date,store_code,department_code,tenpo_yosan,Import_dt)\n    VALUES (temp.year,temp.month,temp.date,temp.store_code,temp.department_code,temp.honbu_yosan,temp.Import_dt);"
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00"
+				}
+			},
+			{
+				"name": "Copying File to Backup",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "History Pipeline Progress Status",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"wildcardFolderPath": "Daily Yosan/Daily Uriage Yosan/",
+							"wildcardFileName": {
+								"value": "@pipeline().parameters.ExcelFileName",
+								"type": "Expression"
+							},
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						}
+					},
+					"sink": {
+						"type": "DelimitedTextSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "DelimitedTextWriteSettings",
+							"quoteAllText": true,
+							"fileExtension": ".txt"
+						}
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "SRC_BACKUP_DAILY_EXCEL_FILE_DS",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "SINK_BACKUP_DAILY_EXCEL_FILE_DS",
+						"type": "DatasetReference",
+						"parameters": {
+							"ExcelFileNameDs": {
+								"value": "@pipeline().parameters.ExcelFileName",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			},
+			{
+				"name": "History Pipeline Progress Status",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "Check Category In File",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "SqlServerls",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": "update [dbo].[essbase_file_upload_history]\nset status='進行中'\nwhere fileName like concat('%','_売上予算【日別】_当初','%','.xlsx') and cooperationDate in \n(\nselect top 1 cooperationDate  from [dbo].[essbase_file_upload_history] where fileName like concat('%','_売上予算【日別】_当初','%','.xlsx') order by cast(cooperationDate as datetime) desc\n)"
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00"
+				}
+			},
+			{
+				"name": "History Pipeline Success Status",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "Stored procedure success log",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "SqlServerls",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": "update [dbo].[essbase_file_upload_history]\nset status='完了'\nwhere fileName like concat('%','_売上予算【日別】_当初','%','.xlsx') and cooperationDate in \n(\nselect top 1 cooperationDate  from [dbo].[essbase_file_upload_history] where fileName like concat('%','_売上予算【日別】_当初','%','.xlsx') order by cast(cooperationDate as datetime) desc\n)\n"
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00"
+				}
+			},
+			{
+				"name": "History Pipeline Failed Status",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "Stored procedure error log",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "SqlServerls",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": "update [dbo].[essbase_file_upload_history]\nset status='エラー'\nwhere fileName like concat('%','_売上予算【日別】_当初','%','.xlsx') and cooperationDate in \n(\nselect top 1 cooperationDate  from [dbo].[essbase_file_upload_history] where fileName like concat('%','_売上予算【日別】_当初','%','.xlsx') order by cast(cooperationDate as datetime) desc\n)\n"
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00"
+				}
+			},
+			{
+				"name": "Honbu Daily Yosan Data Ingestion to Temp Table",
+				"type": "ExecuteDataFlow",
+				"dependsOn": [
+					{
+						"activity": "Truncate Honbu Yosan Data Temp Table",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataflow": {
+						"referenceName": "Dataflow_Daily_Yosan_Data_Ingestion",
+						"type": "DataFlowReference",
+						"parameters": {
+							"ExcelFileNameDF": {
+								"value": "'@{pipeline().parameters.ExcelFileName}'",
+								"type": "Expression"
+							}
+						}
+					},
+					"compute": {
+						"coreCount": 8,
+						"computeType": "General"
+					},
+					"traceLevel": "Fine"
+				}
+			},
+			{
+				"name": "Take Cell Value",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "ExcelSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"wildcardFolderPath": "Daily Yosan/Daily Uriage Yosan",
+							"wildcardFileName": {
+								"value": "@pipeline().parameters.ExcelFileName",
+								"type": "Expression"
+							},
+							"enablePartitionDiscovery": false
+						}
+					},
+					"dataset": {
+						"referenceName": "HNB_DAILY_YOSAN_CAT_DS",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Check Category In File",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Take Cell Value",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@bool(equals(activity('Take Cell Value').output.firstRow.Prop_0, '当初予算'))\n",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "Category Cell Validate",
+							"type": "Fail",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"message": "The cell in Excel uploaded file does not contain a valid category name",
+								"errorCode": "cellvalueIncorrect"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Error Mail",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Update Yosan Target Value",
+						"dependencyConditions": [
+							"Skipped",
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Mail_Error_Pipeline",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"ErrorMessage": {
+							"value": "@{coalesce(if(equals(activity('Take Cell Value').Status, 'Failed'), string(replace(activity('Take Cell Value').Error.Message, '\"','''')), null),\n    if(equals(activity('Category Cell Validate').Status, 'Failed'), string(replace(activity('Category Cell Validate').Error.Message, '\"','''')), null),\n    if(equals(activity('History Pipeline Progress Status').Status, 'Failed'), string(replace(activity('History Pipeline Progress Status').Error.Message, '\"','''')), null),\n    if(equals(activity('Copying File to Backup').Status, 'Failed'), string(replace(activity('Copying File to Backup').Error.Message, '\"','''')), null),\nif(equals(activity('Truncate Honbu Yosan Data Temp Table').Status, 'Failed'), string(replace(activity('Truncate Honbu Yosan Data Temp Table').Error.Message, '\"','''')), null)\n,if(equals(activity('Honbu Daily Yosan Data Ingestion to Temp Table').Status, 'Failed'), string(replace(activity('Honbu Daily Yosan Data Ingestion to Temp Table').Error.Message, '\"','''')), null)\n,if(equals(activity('HONBU YOSAN DATA INGESTION INTO MAIN TABLE').Status, 'Failed'), string(replace(activity('HONBU YOSAN DATA INGESTION INTO MAIN TABLE').Error.Message, '\"','''')), null)\n,if(equals(activity('Honbu Yosan Table to Tenpo Yosan Table').Status, 'Failed'), string(replace(activity('Honbu Yosan Table to Tenpo Yosan Table').Error.Message, '\"','''')), null)\n,if(equals(activity('Update Yosan Target Value').Status, 'Failed'), string(replace(activity('Update Yosan Target Value').Error.Message, '\"','''')), null)\n\n)}",
+							"type": "Expression"
+						},
+						"CC": "sureshjindam@vebuin.com",
+						"EmailTo": "jigar@vebuin.com,riddhitrivedi@vebuin.com,maheshbaldaniya@vebuin.com,vibhorsinghal@vebuin.com,sureshjindam@vebuin.com,charmi@vebuin.com",
+						"From": "sureshjindam@vebuin.com",
+						"Activity": {
+							"value": "@{coalesce(if(\n        equals(activity('Take Cell Value').Status, 'Failed'),\n        'Take Cell Value',\n        null\n    ),\n        if(\n        equals(activity('Category Cell Validate').Status, 'Failed'),\n        'Category Cell Validate',\n        null\n    ),\n         if(\n        equals(activity('History Pipeline Progress Status').Status, 'Failed'),\n        'History Pipeline Progress Status',\n        null\n    ),\n     if(\n        equals(activity('Copying File to Backup').Status, 'Failed'),\n        'Copying File to Backup',\n        null\n    ),\n    if(\n        equals(activity('Truncate Honbu Yosan Data Temp Table').Status, 'Failed'),\n        'Truncate Honbu Yosan Data Temp Table',\n        null\n    ),\n\tif(\n        equals(activity('Honbu Daily Yosan Data Ingestion to Temp Table').Status, 'Failed'),\n        'Honbu Daily Yosan Data Ingestion to Temp Table',\n        null\n    ),\n\tif(\n        equals(activity('HONBU YOSAN DATA INGESTION INTO MAIN TABLE').Status, 'Failed'),\n        'HONBU YOSAN DATA INGESTION INTO MAIN TABLE',\n        null\n    ),\n    \tif(\n        equals(activity('Honbu Yosan Table to Tenpo Yosan Table').Status, 'Failed'),\n        'Honbu Yosan Table to Tenpo Yosan Table',\n        null\n    ),\n    \tif(\n        equals(activity('Update Yosan Target Value').Status, 'Failed'),\n        'Update Yosan Target Value',\n        null\n    )\n    \n \n   )\n}",
+							"type": "Expression"
+						},
+						"Pipeline": {
+							"value": "@pipeline().Pipeline",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "Success Mail",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Update Yosan Target Value",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Mail_Success_Pipeline",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"Pipeline": {
+							"value": "@pipeline().Pipeline",
+							"type": "Expression"
+						},
+						"EmailTo": "jigar@vebuin.com,riddhitrivedi@vebuin.com,maheshbaldaniya@vebuin.com,vibhorsinghal@vebuin.com,sureshjindam@vebuin.com,charmi@vebuin.com",
+						"CC": "sureshjindam@vebuin.com",
+						"From": "sureshjindam@vebuin.com"
+					}
+				}
+			},
+			{
+				"name": "Update Yosan Target Value",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "Honbu Yosan Table to Tenpo Yosan Table",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "SqlServerls",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": "MERGE YosanTargetValue AS temp\r\nUSING (\r\n    SELECT distinct date\r\n    FROM T_DAY_TEN_HONBU_YOSAN_TEMP\r\n) AS Main\r\n    ON Main.date = temp.date\r\nWHEN MATCHED THEN\r\n    UPDATE \r\n    SET temp.targetValue = NULL, temp.updatedon = GETDATE();"
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00"
+				}
+			}
+		],
+		"parameters": {
+			"ExcelFileName": {
+				"type": "string",
+				"defaultValue": "202407_売上予算【日別】_当初.xlsx"
+			}
+		},
+		"folder": {
+			"name": "Daily_Pipelines"
+		},
+		"annotations": [],
+		"lastPublishTime": "2024-09-30T10:38:04Z"
+	}
+}

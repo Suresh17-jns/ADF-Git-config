@@ -1,0 +1,48 @@
+{
+	"name": "SINK_HONBU_YOSAN_TEMP_TABLE_DS",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "SqlServerls",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "SqlServerTable",
+		"schema": [
+			{
+				"name": "year",
+				"type": "varchar"
+			},
+			{
+				"name": "month",
+				"type": "varchar"
+			},
+			{
+				"name": "date",
+				"type": "varchar"
+			},
+			{
+				"name": "store_code",
+				"type": "nvarchar"
+			},
+			{
+				"name": "department_code",
+				"type": "varchar"
+			},
+			{
+				"name": "honbu_yosan",
+				"type": "bigint",
+				"precision": 19
+			},
+			{
+				"name": "import_dt",
+				"type": "datetime",
+				"precision": 23,
+				"scale": 3
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "T_DAY_TEN_HONBU_YOSAN_TEMP"
+		}
+	}
+}

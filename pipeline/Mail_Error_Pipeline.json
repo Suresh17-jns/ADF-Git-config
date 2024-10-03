@@ -1,0 +1,56 @@
+{
+	"name": "Mail_Error_Pipeline",
+	"properties": {
+		"activities": [
+			{
+				"name": "Error_Mail",
+				"type": "WebActivity",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"method": "POST",
+					"headers": {
+						"Content-Type": "application/json"
+					},
+					"url": "https://prod-14.japaneast.logic.azure.com:443/workflows/25ed1ed450614691a078271eb5a05290/triggers/manual/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=mdygKsabFH0mGd6TxM8aPdMcfX4SEQ2VGJPdj0qsH7I",
+					"body": {
+						"value": "{\n \n\"EmailTo\" : \"@{pipeline().parameters.EmailTo}\",\n\"From\" : \"@{pipeline().parameters.From}\",\n\"Pipeline_Name\" :\"@{pipeline().parameters.Pipeline}\",\n\"Subject\" : \"An Notification occur in the @{pipeline().parameters.Pipeline}-pipeline\",\n\"Data_Factory_Name\" : \"@{pipeline().DataFactory}\",\n\"Activity_Name\" : \"@{pipeline().parameters.Activity}\",\n\"CC\" : \"@{pipeline().parameters.CC}\",\n\"RunId\" : \"@{pipeline().RunId}\",\n \"Output_Status\": \"Not Successfully completed the @{pipeline().parameters.Pipeline}\",\n \n\"ErrorMessage\" : \"@{pipeline().parameters.ErrorMessage}\"\n \n \n}",
+						"type": "Expression"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"ErrorMessage": {
+				"type": "string"
+			},
+			"CC": {
+				"type": "string"
+			},
+			"EmailTo": {
+				"type": "string"
+			},
+			"From": {
+				"type": "string"
+			},
+			"Activity": {
+				"type": "string"
+			},
+			"Pipeline": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "Mail_Pipelines"
+		},
+		"annotations": [],
+		"lastPublishTime": "2024-09-30T10:43:27Z"
+	}
+}

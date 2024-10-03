@@ -1,0 +1,21 @@
+{
+	"name": "HNB_DAILY_YOSAN_CAT_DS",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "AzureDataLakeStoragels",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "Excel",
+		"typeProperties": {
+			"sheetName": "売上予算【日別】",
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"folderPath": "Daily Yosan/Daily Uriage Yosan",
+				"fileSystem": "yosan"
+			},
+			"range": "J4:J4"
+		},
+		"schema": []
+	}
+}
